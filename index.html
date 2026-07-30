@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Poster Viewer</title>
+
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --panel: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --primary: #0f766e;
+      --primary-dark: #115e59;
+      --border: #dbe3ec;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.10);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 14px;
+    }
+
+    .viewer {
+      width: 100%;
+      max-width: 920px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(244, 247, 251, 0.92);
+      backdrop-filter: blur(10px);
+      padding: 10px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .counter {
+      min-width: 74px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--muted);
+      font-size: 14px;
+      text-align: center;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .actions::-webkit-scrollbar {
+      display: none;
+    }
+
+    button,
+    .button {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--text);
+      padding: 10px 12px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      white-space: nowrap;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+    }
+
+    button.primary,
+    .button.primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #ffffff;
+    }
+
+    button.primary:hover,
+    .button.primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .poster-frame {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .poster-image {
+      width: 100%;
+      height: auto;
+      display: block;
+      background: #ffffff;
+    }
+
+    .nav-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .nav-row button {
+      padding: 13px 12px;
+    }
+
+    .gallery {
+      display: none;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      padding-bottom: 14px;
+    }
+
+    .gallery.show {
+      display: grid;
+    }
+
+    .thumb {
+      border: 2px solid transparent;
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel);
+      padding: 0;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+    }
+
+    .thumb.active {
+      border-color: var(--primary);
+    }
+
+    .thumb img {
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      object-fit: cover;
+      display: block;
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        padding: 10px;
+      }
+
+      .toolbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .counter {
+        width: 100%;
+      }
+
+      .actions {
+        width: 100%;
+      }
+
+      button,
+      .button {
+        flex: 1;
+        text-align: center;
+      }
+
+      .gallery {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <section class="viewer">
+      <div class="toolbar">
+        <div class="counter" id="counter">1 / 9</div>
+
+        <div class="actions">
+          <button type="button" id="galleryBtn">Gallery</button>
+          <a class="button" id="fullSizeBtn" href="posters/poster-01.png" target="_blank">View Full Size</a>
+          <a class="button primary" id="downloadBtn" href="posters/poster-01.png" download>Download</a>
+        </div>
+      </div>
+
+      <div class="poster-frame">
+        <img
+          id="posterImage"
+          class="poster-image"
+          src="posters/poster-01.png"
+          alt="Poster 1"
+        />
+      </div>
+
+      <div class="nav-row">
+        <button type="button" id="prevBtn">Previous</button>
+        <button type="button" id="nextBtn" class="primary">Next</button>
+      </div>
+
+      <div class="gallery" id="gallery"></div>
+    </section>
+  </main>
+
+  <script>
+    const posters = [
+      "PKP Services 2026 (1) conv/PKP Services 2026 (1) conv 1.png",
+      "PKP Services 2026 (1) conv/PKP Services 2026 (2) conv 2.png",
+      "PKP Services 2026 (1) conv/PKP Services 2026 (3) conv 3.png",
+      "PKP Services 2026 (1) conv/PKP Services 2026 (4) conv 4.png",
+      "PKP Services 2026 (1) conv/PKP Services 2026 (5) conv 5.png",
+      "PKP Services 2026 (1) conv/PKP Services 2026 (6) conv 6.png",
+      "PKP Services 2026 (1) conv/PKP Services 2026 (7) conv 7.png",
+      "PKP Services 2026 (1) conv/PKP Services 2026 (8) conv 8.png",
+      "PKP Services 2026 (1) conv/PKP Services 2026 (9) conv 9.png"
+    ];
+
+    let currentIndex = 0;
+
+    const posterImage = document.getElementById("posterImage");
+    const counter = document.getElementById("counter");
+    const fullSizeBtn = document.getElementById("fullSizeBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const gallery = document.getElementById("gallery");
+    const galleryBtn = document.getElementById("galleryBtn");
+
+    function showPoster(index) {
+      currentIndex = (index + posters.length) % posters.length;
+
+      const posterPath = posters[currentIndex];
+      posterImage.src = posterPath;
+      posterImage.alt = `Poster ${currentIndex + 1}`;
+      counter.textContent = `${currentIndex + 1} / ${posters.length}`;
+      fullSizeBtn.href = posterPath;
+      downloadBtn.href = posterPath;
+
+      document.querySelectorAll(".thumb").forEach((thumb, thumbIndex) => {
+        thumb.classList.toggle("active", thumbIndex === currentIndex);
+      });
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    }
+
+    document.getElementById("prevBtn").addEventListener("click", () => {
+      showPoster(currentIndex - 1);
+    });
+
+    document.getElementById("nextBtn").addEventListener("click", () => {
+      showPoster(currentIndex + 1);
+    });
+
+    galleryBtn.addEventListener("click", () => {
+      gallery.classList.toggle("show");
+    });
+
+    posters.forEach((poster, index) => {
+      const thumb = document.createElement("button");
+      thumb.type = "button";
+      thumb.className = "thumb";
+      thumb.setAttribute("aria-label", `Open poster ${index + 1}`);
+
+      const img = document.createElement("img");
+      img.src = poster;
+      img.alt = `Poster ${index + 1}`;
+
+      thumb.appendChild(img);
+      thumb.addEventListener("click", () => showPoster(index));
+      gallery.appendChild(thumb);
+    });
+
+    let touchStartX = 0;
+
+    posterImage.addEventListener("touchstart", (event) => {
+      touchStartX = event.changedTouches[0].screenX;
+    });
+
+    posterImage.addEventListener("touchend", (event) => {
+      const touchEndX = event.changedTouches[0].screenX;
+      const distance = touchEndX - touchStartX;
+
+      if (distance > 60) showPoster(currentIndex - 1);
+      if (distance < -60) showPoster(currentIndex + 1);
+    });
+
+    showPoster(0);
+  </script>
+</body>
+</html>
